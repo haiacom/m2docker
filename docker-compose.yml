@@ -1,0 +1,310 @@
+services:
+  web:
+    hostname: web.local
+    container_name: nginx
+    image: 'haile/nginx:1.24'
+    ports:
+      - 8080:8080
+    volumes:
+      - ./env/nginx/default/fpm-upstream.conf:/etc/nginx/conf.d/fpm-upstream.conf
+      - ./env/nginx/default/webdefault.conf:/etc/nginx/webdefault.conf
+#      - ./env/nginx/default/pwadefault.conf:/etc/nginx/pwadefault.conf
+#      - ./env/nginx/default/cgi73.conf:/etc/nginx/cgi73.conf
+      - ./env/nginx/default/cgi74.conf:/etc/nginx/cgi74.conf
+      - ./env/nginx/default/cgi81.conf:/etc/nginx/cgi81.conf
+      - ./env/nginx/default/cgi82.conf:/etc/nginx/cgi82.conf
+      - ./env/nginx/vhosts/sites.conf:/etc/nginx/conf.d/sites.conf
+      - "./sslkey.pem:/etc/nginx/ssl/sslkey.pem"
+      - "./sslcert.pem:/etc/nginx/ssl/sslcert.pem"
+      - 'default-m2:/var/www:ro,nocopy,cached'
+    environment:
+      - SSL_KEY=sslkey.pem
+      - SSL_CERT=sslcert.pem
+      - WITH_XDEBUG=1
+      - NGINX_WORKER_PROCESSES=auto
+      - NGINX_WORKER_CONNECTIONS=4096
+    networks:
+      magento:
+        aliases:
+          - web.local
+  tls:
+    hostname: tls.local
+    container_name: tls
+    image: 'haile/nginx:1.24'
+    networks:
+      magento:
+        aliases:
+          - tls.local
+    environment:
+      - SSL_KEY=sslkey.pem
+      - SSL_CERT=sslcert.pem
+      - NGINX_WORKER_PROCESSES=1
+      - NGINX_WORKER_CONNECTIONS=1024
+      - UPSTREAM_HOST=varnish
+      - UPSTREAM_PORT=80
+    volumes:
+      - "./sslkey.pem:/etc/nginx/ssl/sslkey.pem"
+      - "./sslcert.pem:/etc/nginx/ssl/sslcert.pem"
+      - "default-m2:/var/www"
+    extra_hosts: &appextrahosts
+      - "246.local.test indaust-b2b.local.dev indaust-b2b.local.dev indaust-b2b.local.dev:172.25.0.12"
+      ## Linux, uncomment for Xdebug capabilities:
+      #- "host.docker.internal:host-gateway"
+    ports:
+      - '80:80'
+      - '443:443'
+    depends_on:
+      - varnish
+  db:
+    hostname: db.local
+    container_name: db
+    image: 'mariadb:10.4'
+    shm_size: 2gb
+    command: mysqld --sql_mode="" --innodb_buffer_pool_size=5568435456 --max_allowed_packet=200000000 --innodb_strict_mode="OFF" --innodb_log_file_size=2503316480 --character-set-server=utf8 --collation-server=utf8_general_ci --innodb-flush-log-at-trx-commit=2 --optimizer_switch='rowid_filter=off' --optimizer_use_condition_selectivity=1
+    environment:
+      - MYSQL_ROOT_PASSWORD=1
+      - MYSQL_USER=1
+      - MYSQL_PASSWORD=1
+    volumes:
+      - 'magento-db:/var/lib/mysql'
+    ports:
+      - '3306:3306'
+    healthcheck:
+      test: 'mysqladmin ping -h localhost -pmagento2'
+      interval: 30s
+      timeout: 30s
+      retries: 3
+    networks:
+      magento:
+        aliases:
+          - db.local
+#  redis:
+#    hostname: redis.local
+#    container_name: redis
+#    image: 'redis:6.0'
+#    volumes:
+#      - 'redis-db:/data'
+#    ports:
+#      - 6379
+#    sysctls:
+#      net.core.somaxconn: 1024
+#    ulimits:
+#      nproc: 655350
+#      nofile:
+#        soft: 200000
+#        hard: 400000
+#    healthcheck:
+#      test: 'redis-cli ping || exit 1'
+#      interval: 30s
+#      timeout: 30s
+#      retries: 3
+#    networks:
+#      magento:
+#        aliases:
+#          - redis.local
+  os12:
+    hostname: os12.local
+    container_name: os12
+    image: 'haile/os:2.12'
+    volumes:
+      - 'os-db:/usr/share/opensearch/data'
+    ports:
+      - '9120:9200'
+      - '9124:9600'
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    environment:
+      - discovery.type=single-node
+      - cluster.name=docker-clusteros12
+      - node.name=node-os12
+      - "OPENSEARCH_JAVA_OPTS=-Xms4g -Xmx4g"
+      - DISABLE_SECURITY_PLUGIN=true
+      - DISABLE_INSTALL_DEMO_CONFIG=true
+      - bootstrap.memory_lock=true
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
+    networks:
+      magento:
+        aliases:
+          - os12.local
+#  es79:
+#    hostname: es79.local
+#    container_name: es79
+#    image: 'haile/es:7.9.3'
+#    volumes:
+#      - 'es-db:/usr/share/elasticsearch/data'
+#    ports:
+#      - '9793:9200'
+#      - '9794:9300'
+#    ulimits:
+#      memlock:
+#        soft: -1
+#        hard: -1
+#    environment:
+#      - discovery.type=single-node
+#      - cluster.name=docker-clusteres79
+#      - node.name=node-es79
+#      - "ES_JAVA_OPTS=-Xms4g -Xmx4g"
+#      - DISABLE_SECURITY_PLUGIN=true
+#      - DISABLE_INSTALL_DEMO_CONFIG=true
+#      - bootstrap.memory_lock=true
+#      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
+#    networks:
+#      magento:
+#        aliases:
+#          - es79.local
+#  es68:
+#    hostname: es68.local
+#    container_name: es68
+#    image: 'haile/es:7.9.3'
+#    volumes:
+#      - 'es-db:/usr/share/elasticsearch/data'
+#    ports:
+#      - '9686:9200'
+#      - '9687:9300'
+#    ulimits:
+#      memlock:
+#        soft: -1
+#        hard: -1
+#    environment:
+#      - discovery.type=single-node
+#      - cluster.name=docker-clusteres68
+#      - node.name=node-es68
+#      - "ES_JAVA_OPTS=-Xms4g -Xmx4g"
+#      - DISABLE_SECURITY_PLUGIN=true
+#      - DISABLE_INSTALL_DEMO_CONFIG=true
+#      - bootstrap.memory_lock=true
+#      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
+#    networks:
+#      magento:
+#        aliases:
+#          - es68.local
+  fpm74:
+    hostname: fpm74.local
+    container_name: fpm74
+    image: 'haile/fpm:7.4'
+    environment:
+      - SENDMAIL_PATH=/usr/local/bin/mhsendmail --smtp-addr=mailhog:1025
+      - MAGENTO_RUN_MODE:developer
+      - PHP_MEMORY_LIMIT:2G
+      - PHP_VALIDATE_TIMESTAMPS:1
+    ports:
+      - "9004:9004"
+    volumes:
+      - 'default-m2:/var/www:delegated'
+    networks:
+      magento:
+        aliases:
+          - fpm74.local
+    depends_on:
+      - db
+  fpm81:
+    hostname: fpm81.local
+    container_name: fpm81
+    image: 'haile/fpm:8.1-1.0.1'
+    environment:
+      - SENDMAIL_PATH=/usr/local/bin/mhsendmail --smtp-addr=mailhog:1025
+      - MAGENTO_RUN_MODE:developer
+      - PHP_MEMORY_LIMIT:2G
+      - PHP_VALIDATE_TIMESTAMPS:1
+    volumes:
+      - 'default-m2:/var/www:delegated'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    links:
+      - "tls:246.local.test"
+      - "tls:indaust-b2b.local.dev"
+      - "tls:indaust-b2c.local.dev"
+    networks:
+      magento:
+        aliases:
+          - fpm81.local
+    depends_on:
+      - db
+  fpm82:
+    hostname: fpm82.local
+    container_name: fpm82
+    image: 'haile/fpm:8.2-1.0.0'
+    environment:
+      - SENDMAIL_PATH=/usr/local/bin/mhsendmail --smtp-addr=mailhog:1025
+      - MAGENTO_RUN_MODE:developer
+      - PHP_MEMORY_LIMIT:2G
+      - PHP_VALIDATE_TIMESTAMPS:1
+    volumes:
+      - 'default-m2:/var/www:delegated'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    links:
+      - "tls:246.local.test"
+      - "tls:indaust-b2b.local.dev"
+      - "tls:indaust-b2c.local.dev"
+    networks:
+      magento:
+        aliases:
+          - fpm82.local
+    depends_on:
+      - db
+#  selenium:
+#    image: seleniarm/standalone-chromium:latest
+#    hostname: selenium.local
+#    container_name: selenium
+#    ports:
+#      - "4444:4444"
+#      - "7900:7900"
+#    networks:
+#      magento:
+#        aliases:
+#          - selenium.local
+#    links:
+#      - "tls:246.local.test"
+#      - "tls:indaust-b2b.local.dev"
+#      - "tls:indaust-b2c.local.dev"
+#    extra_hosts: *appextrahosts
+  varnish:
+    hostname: varnish.local
+    container_name: varnish
+    image: varnish:fresh-alpine
+    depends_on:
+      - web
+    networks:
+      magento:
+        aliases:
+          - varnish.local
+    expose:
+      - 80
+    volumes:
+      - ./env/varnish/default.vcl:/etc/varnish/default.vcl
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+  mailhog:
+    hostname: mailhog.local
+    image: 'haile/mailhog:2.0.0'
+    container_name: mailhog
+    ports:
+      - '1025:1025'
+      - '8025:8025'
+    networks:
+      magento:
+        aliases:
+          - mailhog.local
+volumes:
+  magento-db: {  }
+  default: {  }
+  es-db: {  }
+  os-db: {  }
+  redis-db: {  }
+  default-m2:
+    driver: local
+    driver_opts:
+        o: bind
+        type: none
+        device: /Volumes/www/
+networks:
+  magento:
+    driver: bridge
