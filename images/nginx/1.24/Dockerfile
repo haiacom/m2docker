@@ -3,14 +3,10 @@ FROM nginx:1.24
 MAINTAINER Hai Le <minhhaislvl@gmail.com>
 
 ENV UPLOAD_MAX_FILESIZE 64M
-ENV FPM72_HOST fpm72
-ENV FPM74_HOST fpm74
-ENV FPM72_PORT 9002
-ENV FPM74_PORT 9004
 ENV UPSTREAM_HOST web
 ENV UPSTREAM_PORT 8080
-ENV SSL_KEY m2local.key
-ENV SSL_CERT m2local.crt
+ENV SSL_KEY local.dev.key
+ENV SSL_CERT local.dev.csr
 ENV MAGENTO_ROOT /var/www
 ENV MAGENTO_RUN_MODE developer
 ENV MFTF_UTILS 0
@@ -40,10 +36,7 @@ RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | b
     && nvm alias default $NODE_VERSION \
     && nvm use default \
     && npm install -g yarn
-RUN openssl req -x509 -newkey rsa:2048 -sha256 -days 730 -nodes \
-  -keyout /etc/nginx/ssl/${SSL_KEY} -out /etc/nginx/ssl/${SSL_CERT} \
-  -subj "/C=US/ST=TX/L=Austin/O=Magento Commerce/OU=Magento Docker/CN=*.local" \
-  -addext "subjectAltName=DNS:*.local,DNS:www.*.local"
+
 
 VOLUME ${MAGENTO_ROOT}
 

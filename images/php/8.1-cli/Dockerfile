@@ -12,7 +12,7 @@ RUN if [ $(uname -m) = "x86_64" ]; then mailhog_arch="amd64"; else mailhog_arch=
 
 FROM php:8.1.1-cli
 
-ARG COMPOSER_VERSION=2.1.14
+ARG COMPOSER_VERSION=2.3.0
 ARG MAGENTO_ROOT=/var/www
 ARG COMPOSER_ALLOW_SUPERUSER=1
 ARG COMPOSER_HOME=/composer
@@ -172,7 +172,7 @@ ADD etc/php-gnupg.ini /usr/local/etc/php/conf.d/gnupg.ini
 # Get composer installed to /usr/local/bin/composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --version=${COMPOSER_VERSION} --filename=composer
 
-ADD bin/* /usr/local/bin/
+ADD mage-tools/* /usr/local/bin/
 
 RUN groupadd -g 1000 www && useradd -g 1000 -u 1000 -d ${MAGENTO_ROOT} -s /bin/bash www
 
@@ -202,6 +202,6 @@ ENTRYPOINT ["/docker-entrypoint.sh"]
 
 WORKDIR ${MAGENTO_ROOT}
 
-USER www
+USER root
 
 CMD ["bash"]

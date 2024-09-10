@@ -9,7 +9,7 @@ RUN yum -y install zip && \
 USER opensearch
 
 RUN bin/opensearch-plugin install -b analysis-icu && \
-    bin/opensearch-plugin install -b
+    bin/opensearch-plugin install -b analysis-phonetic
 
 ADD docker-healthcheck.sh /docker-healthcheck.sh
 ADD docker-entrypoint.sh /docker-entrypoint.sh

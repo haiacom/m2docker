@@ -169,7 +169,7 @@ ADD etc/php-gnupg.ini /usr/local/etc/php/conf.d/gnupg.ini
 # Get composer installed to /usr/local/bin/composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --version=${COMPOSER_VERSION} --filename=composer
 
-ADD bin/* /usr/local/bin/
+ADD ../settings/mage-tools/bin/* /usr/local/bin/
 
 RUN composer global require "hirak/prestissimo"
 

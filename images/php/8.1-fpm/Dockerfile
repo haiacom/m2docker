@@ -10,7 +10,7 @@ RUN if [ $(uname -m) = "x86_64" ]; then mailhog_arch="amd64"; else mailhog_arch=
     && go get . \
     && GOOS=linux GOARCH=${mailhog_arch} go build -o mhsendmail .
 
-FROM php:8.1.1-fpm
+FROM php:8.1.28-fpm
 
 ARG MAGENTO_ROOT=/var/www
 
@@ -135,8 +135,22 @@ RUN cd /tmp \
   && rm -rf ./ioncube \
   && rm ioncube_loaders_lin_${ioncube_arch}.tar.gz
 
+RUN cd /tmp \
+  && if [ $(uname -m) = "x86_64" ]; then sg_arch="x86_64"; else sg_arch="aarch64"; fi \
+  && echo https://www.sourceguardian.com/loaders/download/loaders.linux-${sg_arch}.tar.gz \
+  && curl -O https://www.sourceguardian.com/loaders/download/loaders.linux-${sg_arch}.tar.gz \
+  && ls -ahlts \
+  && mkdir sourceguardian \
+  && tar zxvf loaders.linux-${sg_arch}.tar.gz -C sourceguardian \
+  && export PHP_VERSION=$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;") \
+  && export PHP_EXT_DIR=$(php-config --extension-dir) \
+  && cp "./sourceguardian/ixed.${PHP_VERSION}.lin" "${PHP_EXT_DIR}/sourceguardian.so" \
+  && rm -rf ./sourceguardian \
+  && rm loaders.linux-${sg_arch}.tar.gz
+
 COPY etc/00-imagick.ini /usr/local/etc/php/conf.d/
 COPY etc/00-ioncube.ini /usr/local/etc/php/conf.d/
+COPY etc/15-sourceguardian.ini /usr/local/etc/php/conf.d/
 COPY etc/php-fpm.ini /usr/local/etc/php/conf.d/zz-magento.ini
 COPY etc/php-xdebug.ini /usr/local/etc/php/conf.d/zz-xdebug-settings.ini
 COPY etc/php-pcov.ini /usr/local/etc/php/conf.d/zz-pcov-settings.ini

@@ -1,4 +1,4 @@
-FROM opensearchproject/opensearch:1.3.0
+FROM opensearchproject/opensearch:1.3.16
 
 USER root
 RUN yum -y install zip && \
